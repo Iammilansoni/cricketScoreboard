@@ -53,6 +53,7 @@ class Match {
     Player[] battingOrderTeam1;
     Player[] battingOrderTeam2;
     String fieldingStrategy;
+    boolean isSecondInnings;
 
     Match(Team team1, Team team2, int overs, boolean isTeam1Batting) {
         this.team1 = team1;
@@ -72,6 +73,7 @@ class Match {
         this.battingOrderTeam1 = team1.players.clone();
         this.battingOrderTeam2 = team2.players.clone();
         this.fieldingStrategy = "Balanced"; // Default strategy
+        this.isSecondInnings = false;
     }
 }
 
@@ -220,17 +222,19 @@ public class cricketScoreboard {
                     match.isTeam1Batting = false;
                     match.currentOver = 0;
                     match.ballsInOver = 0;
-                    match.batsmanOnStrike = match.battingOrderTeam1[0];
-                    match.batsmanNonStrike = match.battingOrderTeam1[1];
+                    match.batsmanOnStrike = match.battingOrderTeam2[0];
+                    match.batsmanNonStrike = match.battingOrderTeam2[1];
                     match.bowler = match.team1.players[0];
+                    match.isSecondInnings = true;
                     playMatch(match);
-                    playSecondInning(match);
                 }
     
                 displayResults(match);
             }
         }
     }
+
+    
     
     void playMatch(Match match) {
         int totalBalls = 0;
@@ -241,7 +245,13 @@ public class cricketScoreboard {
             System.out.print("Enter the name of the bowler for this over: ");
             String bowlerName = scanner.nextLine();
             match.bowler = getPlayerByName(bowlerName, match.isTeam1Batting ? match.team2 : match.team1);
-            match.ballsInOver = 0;
+
+            // Update the batsmen and bowler
+            Player temp = match.batsmanOnStrike;
+            match.batsmanOnStrike = match.batsmanNonStrike;
+            match.batsmanNonStrike = temp;
+
+            // Rest of the code...
             while (match.ballsInOver < 6) {
                 System.out.println("Batsman on strike: " + match.batsmanOnStrike.name);
                 System.out.println("Batsman on non-strike: " + match.batsmanNonStrike.name);
@@ -265,7 +275,9 @@ public class cricketScoreboard {
                         match.batsmanOnStrike.individualScore += runsScored;
                         match.batsmanOnStrike.ballsFaced++;
                         System.out.println("Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-                        System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        if (match.isSecondInnings) {
+                            System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        }
                     }
                     match.ballsInOver++;
                     totalBalls++;
@@ -277,7 +289,9 @@ public class cricketScoreboard {
                     } else {
                         match.scoreTeam2++;
                         System.out.println("Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-                        System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        if (match.isSecondInnings) {
+                            System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        }
                     }
                     // do not increment ball count
                 } else if (deliveryType == 4 || deliveryType == 5) {
@@ -291,7 +305,9 @@ public class cricketScoreboard {
                     } else {
                         match.scoreTeam2 += runsScored;
                         System.out.println("Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-                        System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        if (match.isSecondInnings) {
+                            System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+                        }
                     }
                     match.ballsInOver++;
                     totalBalls++;
@@ -327,7 +343,7 @@ public class cricketScoreboard {
                 System.out.print("Do the players want to exchange their strike? (yes/no): ");
                 String exchangeStrikeResponse = scanner.nextLine();
                 if (exchangeStrikeResponse.equalsIgnoreCase("yes")) {
-                    Player temp = match.batsmanOnStrike;
+                    Player tempBatsman = match.batsmanOnStrike;
                     match.batsmanOnStrike = match.batsmanNonStrike;
                     match.batsmanNonStrike = temp;
                 }
@@ -336,8 +352,9 @@ public class cricketScoreboard {
             }
 
             match.currentOver++;
-            match.bowlerOvers[getBowlerIndex(match.bowler, match.team2)]++;
+            match.bowlerOvers[getBowlerIndex(match.bowler, match.isTeam1Batting ? match.team2 : match.team1)]++;
             match.bowler.ballsBowled += 6;
+            match.ballsInOver = 0; // Reset balls in over for the next over
 
             if (match.currentOver < match.overs && (match.isTeam1Batting ? match.wicketsTeam1 : match.wicketsTeam2) < 10) {
                 changeBowler(match);
@@ -356,10 +373,14 @@ public class cricketScoreboard {
             System.out.println("Team 1 needs " + (match.scoreTeam2 + 1 - match.scoreTeam1) + " runs to win.");
         }
 
-        System.out.print("Do you want to play the 2nd innings? (yes/no): ");
-        String playSecondInnings = scanner.nextLine();
-        if (playSecondInnings.equalsIgnoreCase("yes")) {
-            playSecondInning(match);
+        if (match.isSecondInnings) {
+            announceWinner(match);
+        } else {
+            System.out.print("Do you want to play the 2nd innings? (yes/no): ");
+            String playSecondInnings = scanner.nextLine();
+            if (playSecondInnings.equalsIgnoreCase("yes")) {
+                playSecondInning(match);
+            }
         }
     }
 
@@ -374,6 +395,7 @@ public class cricketScoreboard {
         match.batsmanOnStrike = match.battingOrderTeam1[0];
         match.batsmanNonStrike = match.battingOrderTeam1[1];
         match.bowler = match.team2.players[0];
+        match.isSecondInnings = true;
 
         playMatch(match);
     }
@@ -397,41 +419,27 @@ public class cricketScoreboard {
 
     void changeBowler(Match match) {
         Player lastBowler = match.bowler;  // Keep track of the previous bowler
-        
+    
         while (true) {
             System.out.print("Enter the next bowler's name: ");
             String nextBowlerName = scanner.nextLine();
-            
+    
             // Iterate through the bowling team's players
             for (Player player : match.isTeam1Batting ? match.team2.players : match.team1.players) {
                 if (player.name.equals(nextBowlerName)) {
                     int bowlerIndex = getBowlerIndex(player, match.isTeam1Batting ? match.team2 : match.team1);
-
-                     // Calculate allowed overs
-                     int allowedOvers = (int) Math.ceil((double) match.overs / 5);
-
+    
+                    // Calculate allowed overs
+                    int allowedOvers = (int) Math.ceil((double) match.overs * 0.2);
+    
                     // Debugging statements
                     System.out.println("Checking bowler: " + player.name);
                     System.out.println("Bowler index: " + bowlerIndex);
                     System.out.println("Bowler overs: " + match.bowlerOvers[bowlerIndex]);
-                    System.out.println("Allowed overs: " + (match.overs / 5));
-                    
+                    System.out.println("Allowed overs: " + allowedOvers);
+    
                     // Ensure the player hasn't bowled more than allowed overs and is not the same as the last bowler
                     if (match.bowlerOvers[bowlerIndex] < allowedOvers) {
-                        
-                        if (!player.equals(lastBowler)) {
-                            match.bowler = player;  // Set the new bow
-
-
-                    // Debugging statements
-                    System.out.println("Checking bowler: " + player.name);
-                    System.out.println("Bowler index: " + bowlerIndex);
-                    System.out.println("Bowler overs: " + match.bowlerOvers[bowlerIndex]);
-                    System.out.println("Allowed overs: " + (match.overs / 5));
-                    
-                    // Ensure the player hasn't bowled more than allowed overs and is not the same as the last bowler
-                    if (match.bowlerOvers[bowlerIndex] < allowedOvers) {
-                        
                         if (!player.equals(lastBowler)) {
                             match.bowler = player;  // Set the new bowler
                             return;
@@ -443,69 +451,76 @@ public class cricketScoreboard {
                     }
                 }
             }
-        } else {
-            System.out.println("No bowlers available to bowl.");
+    
+            // If the bowler name is invalid or the same as the last bowler, prompt again
+            System.out.println("Invalid bowler name or bowler cannot bowl consecutive overs. Please enter a different bowler.");
         }
     }
-    } }
+        
+                        int getBowlerIndex(Player bowler, Team team) {
+                            for (int i = 0; i < team.players.length; i++) {
+                                if (team.players[i].equals(bowler)) {
+                                    return i;
+                                }
+                            }
+                            return -1; // Should not happen if bowler is valid
+                        }
+                    
+                        void displayResults(Match match) {
+                            System.out.println("Match Over!");
+                            System.out.println("Team 1 Score: " + match.scoreTeam1 + "/" + match.wicketsTeam1);
+                            System.out.println("Team 2 Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
+                    
+                            if (match.scoreTeam1 > match.scoreTeam2) {
+                                System.out.println("Team 1 wins!");
+                            } else if (match.scoreTeam2 > match.scoreTeam1) {
+                                System.out.println("Team 2 wins!");
+                            } else {
+                                System.out.println("The match is a tie!");
+                            }
+                        }
+                    
+                        void announceWinner(Match match) {
+                            if (match.scoreTeam1 > match.scoreTeam2) {
+                                System.out.println("Team 1 wins the match!");
+                            } else if (match.scoreTeam2 > match.scoreTeam1) {
+                                System.out.println("Team 2 wins the match!");
+                            } else {
+                                System.out.println("The match is a tie!");
+                            }
+                        }
+                    
+                        public static void main(String[] args) {
+                            cricketScoreboard scoreboard = new cricketScoreboard();
+                            Scanner scanner = new Scanner(System.in);
+                    
+                            while (true) {
+                                scoreboard.displayMenu();
+                                System.out.print("Enter your choice: ");
+                                int choice = scanner.nextInt();
+                                scanner.nextLine(); // consume newline left-over
+                    
+                                switch (choice) {
+                                    case 1:
+                                        scoreboard.viewTeams();
+                                        break;
+                                    case 2:
+                                        scoreboard.addTeam();
+                                        break;
+                                    case 3:
+                                        scoreboard.startMatch();
+                                        break;
+                                    case 4:
+                                        System.out.println("Exiting...");
+                                        return;
+                                    default:
+                                        System.out.println("Invalid choice. Please try again.");
+                                }
+                            }
+                        }
+                    }
+                    
 
-    int getBowlerIndex(Player bowler, Team team) {
-        for (int i = 0; i < team.players.length; i++) {
-            if (team.players[i].name.equals(bowler.name)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    void displayResults(Match match) {
-        System.out.println("Match Results:");
-        System.out.println("Team 1 Score: " + match.scoreTeam1 + "/" + match.wicketsTeam1);
-        System.out.println("Team 2 Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-        if (match.scoreTeam1 > match.scoreTeam2) {
-            System.out.println("Team 1 wins!");
-        } else if (match.scoreTeam2 > match.scoreTeam1) {
-            System.out.println("Team 2 wins!");
-        } else {
-            System.out.println("The match is a tie!");
-        }
-
-        System.out.println("Individual Scores:");
-        for (Player player : match.team1.players) {
-            System.out.println(player.name + ": " + player.individualScore + " runs (Strike Rate: " + player.getStrikeRate() + ")");
-        }
-        for (Player player : match.team2.players) {
-            System.out.println(player.name + ": " + player.individualScore + " runs (Strike Rate: " + player.getStrikeRate() + ")");
-        }
-    }
-
-
-
-    public static void main(String[] args) {
-        cricketScoreboard scoreboard = new cricketScoreboard();
-
-        while (true) {
-            scoreboard.displayMenu();
-            System.out.print("Enter your choice: ");
-            int choice = scoreboard.scanner.nextInt();
-            scoreboard.scanner.nextLine(); // consume newline left-over
-
-            switch (choice) {
-                case 1:
-                    scoreboard.viewTeams();
-                    break;
-                case 2:
-                    scoreboard.addTeam();
-                    break;
-                case 3:
-                    scoreboard.startMatch();
-                    break;
-                case 4:
-                    System.out.println("Exiting...");
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        }
-    }
-}
+                   
+    
+                   
