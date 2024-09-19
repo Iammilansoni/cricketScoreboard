@@ -190,11 +190,9 @@ public class cricketScoreboard {
                 if (team1.name.equals(tossWinningTeamName)) {
                     tossWinningTeam = team1;
                     tossLosingTeam = team2;
-                    System.out.println("Team " + tossLosingTeam.name + " is batting second.");
                 } else if (team2.name.equals(tossWinningTeamName)) {
                     tossWinningTeam = team2;
                     tossLosingTeam = team1;
-                    System.out.println("Team " + tossLosingTeam.name + " is batting second.");
                 } else {
                     System.out.println("Invalid team name.");
                     return;
@@ -209,6 +207,15 @@ public class cricketScoreboard {
                 } else {
                     System.out.println("Invalid choice.");
                     return;
+                }
+
+                // Determine which team is batting first
+                if (tossWinningTeam == team1) {
+                    isTeam1Batting = true;
+                    System.out.println("Team 1 is batting first.");
+                } else {
+                    isTeam1Batting = false;
+                    System.out.println("Team 2 is batting first.");
                 }
     
                 System.out.print("Choose fielding strategy (Aggressive/Defensive/Balanced): ");
@@ -234,8 +241,6 @@ public class cricketScoreboard {
         }
     }
 
-    
-    
     void playMatch(Match match) {
         int totalBalls = 0;
         int totalWickets = 0;
@@ -367,10 +372,14 @@ public class cricketScoreboard {
 
         if (match.isTeam1Batting) {
             System.out.println("Team 1 scored " + match.scoreTeam1 + "/" + match.wicketsTeam1);
-            System.out.println("Team 2 needs " + (match.scoreTeam1 + 1 - match.scoreTeam2) + " runs to win.");
+            if (!match.isSecondInnings) {
+                System.out.println("Team 2 needs " + (match.scoreTeam1 + 1) + " runs to win.");
+            }
         } else {
             System.out.println("Team 2 scored " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-            System.out.println("Team 1 needs " + (match.scoreTeam2 + 1 - match.scoreTeam1) + " runs to win.");
+            if (!match.isSecondInnings) {
+                System.out.println("Team 1 needs " + (match.scoreTeam2 + 1) + " runs to win.");
+            }
         }
 
         if (match.isSecondInnings) {
@@ -408,7 +417,7 @@ public class cricketScoreboard {
         }
         return null;
     }
-
+    
     void rotateStrike(int runsScored, Match match) {
         if (runsScored % 2 != 0) {
             Player temp = match.batsmanOnStrike;
@@ -425,102 +434,70 @@ public class cricketScoreboard {
             String nextBowlerName = scanner.nextLine();
     
             // Iterate through the bowling team's players
-            for (Player player : match.isTeam1Batting ? match.team2.players : match.team1.players) {
-                if (player.name.equals(nextBowlerName)) {
-                    int bowlerIndex = getBowlerIndex(player, match.isTeam1Batting ? match.team2 : match.team1);
-    
-                    // Calculate allowed overs
-                    int allowedOvers = (int) Math.ceil((double) match.overs * 0.2);
-    
-                    // Debugging statements
-                    System.out.println("Checking bowler: " + player.name);
-                    System.out.println("Bowler index: " + bowlerIndex);
-                    System.out.println("Bowler overs: " + match.bowlerOvers[bowlerIndex]);
-                    System.out.println("Allowed overs: " + allowedOvers);
-    
-                    // Ensure the player hasn't bowled more than allowed overs and is not the same as the last bowler
-                    if (match.bowlerOvers[bowlerIndex] < allowedOvers) {
-                        if (!player.equals(lastBowler)) {
-                            match.bowler = player;  // Set the new bowler
-                            return;
-                        } else {
-                            System.out.println("The bowler cannot bowl consecutive overs. Choose a different bowler.");
-                        }
-                    } else {
-                        System.out.println("This bowler has reached their over limit.");
-                    }
+            for            (Player player : (match.isTeam1Batting ? match.team2.players : match.team1.players)) {
+                if (player.name.equals(nextBowlerName) && !player.name.equals(lastBowler.name)) {
+                    match.bowler = player;
+                    return;
                 }
             }
-    
-            // If the bowler name is invalid or the same as the last bowler, prompt again
-            System.out.println("Invalid bowler name or bowler cannot bowl consecutive overs. Please enter a different bowler.");
+            System.out.println("Invalid bowler name or same bowler as last over. Please enter a different bowler.");
         }
     }
-        
-                        int getBowlerIndex(Player bowler, Team team) {
-                            for (int i = 0; i < team.players.length; i++) {
-                                if (team.players[i].equals(bowler)) {
-                                    return i;
-                                }
-                            }
-                            return -1; // Should not happen if bowler is valid
-                        }
-                    
-                        void displayResults(Match match) {
-                            System.out.println("Match Over!");
-                            System.out.println("Team 1 Score: " + match.scoreTeam1 + "/" + match.wicketsTeam1);
-                            System.out.println("Team 2 Score: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
-                    
-                            if (match.scoreTeam1 > match.scoreTeam2) {
-                                System.out.println("Team 1 wins!");
-                            } else if (match.scoreTeam2 > match.scoreTeam1) {
-                                System.out.println("Team 2 wins!");
-                            } else {
-                                System.out.println("The match is a tie!");
-                            }
-                        }
-                    
-                        void announceWinner(Match match) {
-                            if (match.scoreTeam1 > match.scoreTeam2) {
-                                System.out.println("Team 1 wins the match!");
-                            } else if (match.scoreTeam2 > match.scoreTeam1) {
-                                System.out.println("Team 2 wins the match!");
-                            } else {
-                                System.out.println("The match is a tie!");
-                            }
-                        }
-                    
-                        public static void main(String[] args) {
-                            cricketScoreboard scoreboard = new cricketScoreboard();
-                            Scanner scanner = new Scanner(System.in);
-                    
-                            while (true) {
-                                scoreboard.displayMenu();
-                                System.out.print("Enter your choice: ");
-                                int choice = scanner.nextInt();
-                                scanner.nextLine(); // consume newline left-over
-                    
-                                switch (choice) {
-                                    case 1:
-                                        scoreboard.viewTeams();
-                                        break;
-                                    case 2:
-                                        scoreboard.addTeam();
-                                        break;
-                                    case 3:
-                                        scoreboard.startMatch();
-                                        break;
-                                    case 4:
-                                        System.out.println("Exiting...");
-                                        return;
-                                    default:
-                                        System.out.println("Invalid choice. Please try again.");
-                                }
-                            }
-                        }
-                    }
-                    
 
-                   
-    
-                   
+    int getBowlerIndex(Player bowler, Team team) {
+        for (int i = 0; i < team.players.length; i++) {
+            if (team.players[i].name.equals(bowler.name)) {
+                return i;
+            }
+        }
+        return -1; // Should never happen if bowler is valid
+    }
+
+    void announceWinner(Match match) {
+        if (match.scoreTeam1 > match.scoreTeam2) {
+            System.out.println("Team 1 wins by " + (match.scoreTeam1 - match.scoreTeam2) + " runs.");
+        } else if (match.scoreTeam2 > match.scoreTeam1) {
+            System.out.println("Team 2 wins by " + (10 - match.wicketsTeam2) + " wickets.");
+        } else {
+            System.out.println("The match is a tie.");
+        }
+    }
+
+    void displayResults(Match match) {
+        System.out.println("Match Results:");
+        System.out.println("Team 1: " + match.scoreTeam1 + "/" + match.wicketsTeam1);
+        System.out.println("Team 2: " + match.scoreTeam2 + "/" + match.wicketsTeam2);
+        announceWinner(match);
+    }
+
+    public static void main(String[] args) {
+        cricketScoreboard scoreboard = new cricketScoreboard();
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            scoreboard.displayMenu();
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // consume newline left-over
+
+            switch (choice) {
+                case 1:
+                    scoreboard.viewTeams();
+                    break;
+                case 2:
+                    scoreboard.addTeam();
+                    break;
+                case 3:
+                    scoreboard.startMatch();
+                    break;
+                case 4:
+                    System.out.println("Exiting...");
+                    scanner.close();
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+}
+
